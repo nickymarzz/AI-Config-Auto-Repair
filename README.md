@@ -58,8 +58,7 @@ pip install watchdog ollama
 ## 📂 Project Structure
 - `ai_auto_repair.py`: The main integrated system (Watcher + Validator + AI).
 - `config.json`: The configuration file being monitored.
-- `test_llama.py`: A small utility to test your connection to the local LLM.
-- `watch_script.py`: A basic file watcher implementation for testing.
+- `FINAL_REPORT.md`: Comprehensive documentation on architecture and design decisions.
 
 ---
 
