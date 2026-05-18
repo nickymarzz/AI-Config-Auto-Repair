@@ -1,12 +1,14 @@
 # 🤖 AI Config Auto-Repair Manager
 
-An automated, AI-powered system that monitors JSON configuration files, detects syntax errors in real-time, and uses a local Large Language Model (Llama-3) to propose and apply fixes.
+An automated, AI-powered watchdog system that monitors JSON configuration files, detects syntax errors in real-time, and uses cutting-edge AI models via OpenRouter to propose fixes and secure human approval directly via **Telegram**.
+
+---
 
 ## 🌟 Features
-- **Real-time Monitoring**: Uses `watchdog` to detect file saves instantly.
-- **AI-Powered Repair**: Integrates with **Ollama** and **Llama-3** to intelligently fix syntax errors (missing commas, brackets, etc.).
-- **Human-in-the-loop**: Never overwrites your data without permission. It shows you the proposed fix and waits for a `Y/n` confirmation.
-- **Advanced Error Handling**: If the AI provides an invalid fix, the system catches the error and automatically retries.
+- **Real-Time Monitoring**: Uses `watchdog` to detect file saves instantly.
+- **AI-Powered Repair**: Integrates directly with **OpenRouter** (supporting DeepSeek Flash, Llama 3.3, Gemini 2.5 Flash, etc.) to intelligently fix syntax errors (missing commas, brackets, extra quotes, etc.).
+- **Telegram Human-in-the-Loop**: Never overwrites your data without permission. It pushes the proposed fix directly to your Telegram chat and listens for your `YES` or `NO` reply.
+- **Conflict-Free Architecture**: Seamlessly integrates with OpenClaw Gateway by reading local Telegram message logs via WSL, completely avoiding Telegram Bot API `409 Conflict` errors.
 
 ---
 
@@ -14,56 +16,53 @@ An automated, AI-powered system that monitors JSON configuration files, detects 
 
 ### 1. Prerequisites
 - **Python 3.10+**
-- **Ollama**: [Download here](https://ollama.com/)
+- **WSL (Windows Subsystem for Linux)** with OpenClaw Gateway configured.
 
-### 2. Configure Ollama & Llama-3
-1. Install Ollama and ensure the service is running.
-2. Download the Llama-3 model by running this in your terminal:
-   ```powershell
-   ollama run llama3
-   ```
-   *(You can close the chat once the download is complete.)*
+### 2. Configure Your AI Model
+Open `ai_auto_repair.py` and set your preferred OpenRouter model on **Line 22**:
+```python
+OPENROUTER_MODEL = "openrouter/free"  # Or "openrouter/auto", "google/gemini-2.5-flash:free", etc.
+```
 
 ### 3. Environment Setup
-Create a virtual environment and install the required libraries:
+Activate your Python environment and install the required library:
 ```powershell
-# Create environment
-python -m venv my_env
-# Activate it (Windows)
-.\my_env\Scripts\activate
-# Install dependencies
-pip install watchdog ollama
+# Activate your environment
+.\envs\my_env3\Scripts\activate
+# Install watchdog
+pip install watchdog
 ```
 
 ---
 
 ## 🚀 How to Use
 
-1. **Start the Manager**:
+1. **Start the Watchdog**:
    Run the main script in your terminal:
    ```powershell
-   python -u ai_auto_repair.py
+   & D:/PY/envs/my_env3/python.exe -u "d:/OS Agentic AI/AI-Config-Auto-Repair/ai_auto_repair.py"
    ```
 
 2. **Break a File**:
-   Open `config.json` and intentionally break it (e.g., remove a comma or a closing brace) and save.
+   Open `config.json`, intentionally break the syntax (e.g., remove a comma or closing brace), and save the file.
 
-3. **Approve the Fix**:
-   - The script will detect the change and identify the error.
-   - It will consult Llama-3 and display a "Proposed Fix".
-   - Type **`Y`** and press **Enter** to apply the fix automatically.
+3. **Approve on Telegram**:
+   - The script instantly detects the change and identifies the error.
+   - It consults OpenRouter and sends a formatted alert to your Telegram app.
+   - Simply reply **`YES`** in your Telegram chat to apply the fix automatically!
 
 ---
 
 ## 📂 Project Structure
-- `ai_auto_repair.py`: The main integrated system (Watcher + Validator + AI).
-- `config.json`: The configuration file being monitored.
-- `FINAL_REPORT.md`: Comprehensive documentation on architecture and design decisions.
+- `ai_auto_repair.py`: The main integrated watchdog system (Watcher + Validator + OpenRouter + Telegram Poller).
+- `config.json`: The sample configuration file being monitored.
+- `README.md`: This documentation file.
+- `FINAL_REPORT.md`: Comprehensive documentation on system architecture and design decisions.
 
 ---
 
 ## 🎓 Academic Note
-This project demonstrates the implementation of an **Agentic Workflow**:
-- **Perception**: Monitoring file system events.
-- **Reasoning**: Validating data and error analysis.
-- **Action**: Correcting mistakes with AI and interacting with the user.
+This project demonstrates the implementation of a state-of-the-art **Agentic Workflow**:
+- **Perception**: Monitoring file system events and local Telegram logs.
+- **Reasoning**: Validating JSON data, analyzing syntax errors, and generating precise AST repairs via LLMs.
+- **Action**: Pushing mobile alerts and executing human-approved file modifications.

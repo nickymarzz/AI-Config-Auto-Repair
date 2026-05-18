@@ -2,8 +2,8 @@
   "app_name": "BrokenConfig",
   "version": "1.0.0",
   "settings": {
-    "theme": "dark",
-    "enable_logging": true,
-    "max_retries": 5
-  }
+    "theme": "dark"
+  },
+  "enable_logging": true,
+  "max_retries": 3
 }
