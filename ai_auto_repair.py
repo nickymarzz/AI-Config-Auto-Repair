@@ -238,8 +238,8 @@ class AutoRepairHandler(FileSystemEventHandler):
             print("[NOTE] TELEGRAM_CHAT_ID not set.")
             return
 
-        # ── Step 1: Ask DeepSeek Flash for a fix ──────────────────────
-        print(f"[STEP 1] Asking DeepSeek v4 Flash ({OPENROUTER_MODEL}) to generate a fix...")
+        # ── Step 1: Ask for a fix ──────────────────────
+        print(f"[STEP 1] Asking ({OPENROUTER_MODEL}) to generate a fix...")
 
         prompt = (
             f"The following JSON file has a syntax error:\n"
@@ -251,10 +251,10 @@ class AutoRepairHandler(FileSystemEventHandler):
         fixed_json = call_deepseek(prompt)
 
         if not fixed_json:
-            print("[ERROR] DeepSeek failed to generate a fix.")
+            print("[ERROR] failed to generate a fix.")
             send_telegram(
                 f"🚨 Watchdog Alert: JSON syntax error in config.json:\n{error}\n\n"
-                f"⚠️ DeepSeek could not generate a fix. Please repair manually."
+                f"⚠️ AI could not generate a fix. Please repair manually."
             )
             return
 
@@ -262,9 +262,9 @@ class AutoRepairHandler(FileSystemEventHandler):
         try:
             parsed = json.loads(fixed_json)
             fixed_json = json.dumps(parsed, indent=2)
-            print("[STEP 1] ✅ DeepSeek generated valid JSON fix.")
+            print("[STEP 1] ✅ Generated valid JSON fix.")
         except json.JSONDecodeError as ve:
-            print(f"[ERROR] DeepSeek's fix is not valid JSON: {ve}")
+            print(f"[ERROR] AI's fix is not valid JSON: {ve}")
             send_telegram(
                 f"🚨 Watchdog Alert: JSON syntax error in config.json:\n{error}\n\n"
                 f"⚠️ AI generated an invalid fix. Please repair manually."
