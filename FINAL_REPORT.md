@@ -8,9 +8,10 @@ The **AI Config Auto-Repair Manager** is an automated watchdog system designed t
 ## 🏗️ System Architecture
 The project follows a robust **Agentic Workflow** composed of three distinct layers:
 
-1. **Perception Layer (File & Log Monitoring)**:
+1. **Perception Layer (File & Telegram Monitoring)**:
    - Utilizes the `watchdog` library to monitor the local filesystem for `on_modified` events on target configuration files (e.g., `config.json`).
-   - Integrates seamlessly with OpenClaw Gateway by monitoring local Telegram session logs (`sessions.json.telegram-messages.json`) via WSL, completely avoiding Telegram Bot API `409 Conflict` errors.
+   - Actively polls the native Telegram Bot API to detect real-time user validation approvals or rejections.
+
 
 2. **Reasoning Layer (Validation & AI AST Repair)**:
    - **Validation**: Every file change is validated using Python's robust `json.loads()`.
@@ -60,10 +61,11 @@ The project initially explored local LLM execution (Llama-3 via Ollama) to guara
 
 | Challenge | Impact | Solution |
 | :--- | :--- | :--- |
-| **Telegram `409 Conflict`** | OpenClaw Gateway actively polling `getUpdates` blocked the Python script from polling the same bot token. | Switched from REST polling to reading OpenClaw's local `telegram-messages.json` log file via WSL `tail`. |
+| **Hardcoded Secrets in Commits** | Committing raw Telegram bot tokens and OpenRouter API keys triggers GitHub's Push Protection and halts deployments. | Designed a robust environment-variable-driven configuration system using `.env` files and `load_dotenv` parsing to isolate credentials from version control. |
 | **Reasoning Model `null` Content** | Models like DeepSeek Flash return `content=null` while placing answers in `reasoning_content`. | Implemented dual-field inspection checking both `content` and `reasoning_content` with regex AST fallback extraction. |
 | **Markdown Hallucination** | Models frequently wrap JSON in markdown code blocks. | Built automated regex stripping to sanitize ` ```json ` blocks before validation. |
 | **Rate Limiting** | Free tier daily limits on specific models (e.g., DeepSeek free). | Documented drop-in replacements like `openrouter/auto` and `openrouter/free` to ensure uninterrupted operation. |
+
 
 ---
 

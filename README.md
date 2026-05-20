@@ -8,7 +8,7 @@ An automated, AI-powered watchdog system that monitors JSON configuration files,
 - **Real-Time Monitoring**: Uses `watchdog` to detect file saves instantly.
 - **AI-Powered Repair**: Integrates directly with **OpenRouter** (supporting DeepSeek Flash, Llama 3.3, Gemini 2.5 Flash, etc.) to intelligently fix syntax errors (missing commas, brackets, extra quotes, etc.).
 - **Telegram Human-in-the-Loop**: Never overwrites your data without permission. It pushes the proposed fix directly to your Telegram chat and listens for your `YES` or `NO` reply.
-- **Conflict-Free Architecture**: Seamlessly integrates with OpenClaw Gateway by reading local Telegram message logs via WSL, completely avoiding Telegram Bot API `409 Conflict` errors.
+- **Secure Configuration**: Keeps secrets safe by loading API keys and bot tokens dynamically from `.env` files, avoiding accidental exposure.
 
 ---
 
@@ -16,22 +16,29 @@ An automated, AI-powered watchdog system that monitors JSON configuration files,
 
 ### 1. Prerequisites
 - **Python 3.10+**
-- **WSL (Windows Subsystem for Linux)** with OpenClaw Gateway configured.
+- **Telegram Bot Token & Chat ID** (to receive alerts and send approvals)
+- **OpenRouter API Key** (to perform the automated AI configuration fixes)
 
-### 2. Configure Your AI Model
-Open `ai_auto_repair.py` and set your preferred OpenRouter model on **Line 22**:
-```python
-OPENROUTER_MODEL = "openrouter/free"  # Or "openrouter/auto", "google/gemini-2.5-flash:free", etc.
-```
+### 2. Environment Setup
+1. **Activate your environment** and install the required watchdog dependency:
+   ```powershell
+   # Activate your environment
+   .\envs\my_env3\Scripts\activate
+   # Install watchdog
+   pip install watchdog
+   ```
 
-### 3. Environment Setup
-Activate your Python environment and install the required library:
-```powershell
-# Activate your environment
-.\envs\my_env3\Scripts\activate
-# Install watchdog
-pip install watchdog
-```
+2. **Configure Credentials**:
+   Copy `.env.example` to `.env` and fill in your actual credentials:
+   ```env
+   TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+   TELEGRAM_CHAT_ID=your_telegram_chat_id_here
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   ```
+
+### 3. Configure Your AI Model
+Open `ai_auto_repair.py` and set your preferred OpenRouter model via `OPENROUTER_MODEL` (defaults to `"openrouter/free"`).
+
 
 ---
 
@@ -63,6 +70,6 @@ pip install watchdog
 
 ## 🎓 Academic Note
 This project demonstrates the implementation of a state-of-the-art **Agentic Workflow**:
-- **Perception**: Monitoring file system events and local Telegram logs.
+- **Perception**: Monitoring file system events and incoming Telegram messages.
 - **Reasoning**: Validating JSON data, analyzing syntax errors, and generating precise AST repairs via LLMs.
 - **Action**: Pushing mobile alerts and executing human-approved file modifications.
