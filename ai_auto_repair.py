@@ -3,24 +3,38 @@ import os
 import re
 import time
 import json
-import subprocess
 import urllib.request
 import urllib.error
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
+# Reconfigure stdout/stderr to UTF-8 for safe printing of emojis on Windows
+if sys.platform.startswith('win'):
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+
 # ── Configuration ──────────────────────────────────────────────────────────────
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "558503791")
-TELEGRAM_BOT_TOKEN = "8725156361:AAG9MDvjIdbw84PI9fP9ew9MUuCkdFDPywY"
-OPENCLAW_CLI = "/home/u_s_e_r/.npm-global/bin/openclaw"
+# Load environment variables from .env if present
+def load_dotenv():
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    os.environ[key.strip()] = val.strip().strip('"').strip("'")
+
+load_dotenv()
+
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
 # OpenRouter API (DeepSeek v4 Flash — Free Tier)
-OPENROUTER_API_KEY = os.getenv(
-    "OPENROUTER_API_KEY",
-    "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"
-)
 OPENROUTER_MODEL = "openrouter/free"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+
 
 # ── OpenRouter / DeepSeek Helper ───────────────────────────────────────────────
 def extract_json_from_text(text):
@@ -123,75 +137,84 @@ def call_deepseek(prompt):
 
 # ── Telegram Helpers ───────────────────────────────────────────────────────────
 def send_telegram(message):
-    """Send a message to Telegram via OpenClaw CLI."""
+    """Send a message directly to Telegram Bot API."""
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = json.dumps({
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message
+    }).encode("utf-8")
+    
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={"Content-Type": "application/json"}
+    )
     try:
-        result = subprocess.run(
-            ["wsl", OPENCLAW_CLI, "message", "send",
-             "--channel", "telegram",
-             "--target", TELEGRAM_CHAT_ID,
-             "--message", message],
-            capture_output=True, text=True, timeout=30
-        )
-        return result.returncode == 0
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            return result.get("ok", False)
     except Exception as e:
         print(f"[TELEGRAM ERROR] {e}")
         return False
 
 
-def get_latest_telegram_message():
-    """Read the latest Telegram message from OpenClaw's local session log via WSL."""
+def get_telegram_updates(offset=None):
+    """Fetch updates from Telegram Bot API directly."""
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates"
+    if offset is not None:
+        url += f"?offset={offset}&timeout=10"
     try:
-        log_path = "/home/u_s_e_r/.openclaw/agents/main/sessions/sessions.json.telegram-messages.json"
-        result = subprocess.run(
-            ["wsl", "tail", "-n", "10", log_path],
-            capture_output=True, text=True, timeout=10
-        )
-        if result.returncode == 0 and result.stdout:
-            lines = [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
-            parsed_messages = []
-            for line in lines:
-                try:
-                    data = json.loads(line)
-                    msg = data.get("node", {}).get("sourceMessage", {})
-                    chat_id = str(msg.get("chat", {}).get("id", ""))
-                    text = (msg.get("text") or "").strip().upper()
-                    date = msg.get("date", 0)
-                    if chat_id == TELEGRAM_CHAT_ID:
-                        parsed_messages.append({"text": text, "date": date})
-                except Exception:
-                    pass
-            if parsed_messages:
-                parsed_messages.sort(key=lambda x: x["date"])
-                return parsed_messages[-1]
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            if result.get("ok"):
+                return result.get("result", [])
     except Exception as e:
-        print(f"[TELEGRAM READ ERROR] {e}")
-    return None
+        print(f"[TELEGRAM UPDATE ERROR] {e}")
+    return []
 
 
-def poll_telegram_reply(timeout_seconds=300, poll_interval=3):
-    """Poll OpenClaw's Telegram message log for a YES/NO reply from the user."""
+def poll_telegram_reply(timeout_seconds=300, poll_interval=2):
+    """Poll Telegram Bot API directly for a YES/NO reply from the user."""
     print(f"[POLL] Waiting up to {timeout_seconds}s for Telegram reply (YES/NO)...")
     
-    # Get baseline date so we only react to NEW messages sent AFTER we asked
-    initial_msg = get_latest_telegram_message()
-    baseline_date = initial_msg["date"] if initial_msg else (time.time() - 10)
-    
+    # Establish baseline offset to ignore past messages
+    updates = get_telegram_updates()
+    if updates:
+        baseline_offset = updates[-1]["update_id"] + 1
+    else:
+        baseline_offset = None
+        
     start_time = time.time()
+    offset = baseline_offset
+    
     while time.time() - start_time < timeout_seconds:
-        latest = get_latest_telegram_message()
-        if latest and latest["date"] > baseline_date:
-            text = latest["text"]
+        updates = get_telegram_updates(offset)
+        for update in updates:
+            offset = update["update_id"] + 1
+            
+            message = update.get("message")
+            if not message:
+                continue
+                
+            chat_id = str(message.get("chat", {}).get("id", ""))
+            if chat_id != TELEGRAM_CHAT_ID:
+                continue
+                
+            text = (message.get("text") or "").strip().upper()
+            
             if text in ("YES", "Y", "APPROVE"):
+                send_telegram("✅ Applying fix...")
                 return "YES"
             elif text in ("NO", "N", "REJECT", "CANCEL"):
+                send_telegram("❌ Rejecting proposed fix. No changes made.")
                 return "NO"
             else:
-                baseline_date = latest["date"]
                 print(f"[POLL] Got '{text}' — expected YES or NO")
                 send_telegram("⚠️ Please reply with YES to approve or NO to reject.")
-        
+                
         time.sleep(poll_interval)
-    
+        
     return None  # Timeout
 
 # ── Core Repair Logic ──────────────────────────────────────────────────────────
@@ -343,15 +366,34 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     target = os.path.join(script_dir, "config.json")
 
+    print("=" * 60)
+    print("  🤖 AI Auto-Repair System (Human-in-the-loop)")
+    print(f"  🧠 Model: {OPENROUTER_MODEL}")
+    print(f"  📱 Telegram Chat: {TELEGRAM_CHAT_ID or 'Not Set'}")
+    print("=" * 60)
+
+    # Validate required settings
+    missing_vars = []
+    if not TELEGRAM_BOT_TOKEN:
+        missing_vars.append("TELEGRAM_BOT_TOKEN")
+    if not TELEGRAM_CHAT_ID:
+        missing_vars.append("TELEGRAM_CHAT_ID")
+    if not OPENROUTER_API_KEY:
+        missing_vars.append("OPENROUTER_API_KEY")
+
+    if missing_vars:
+        print("❌ ERROR: Missing required configuration variables:")
+        for var in missing_vars:
+            print(f"   - {var}")
+        print("\nPlease create a '.env' file in the script directory or set these in your environment.")
+        print("Use '.env.example' as a template.")
+        print("=" * 60)
+        sys.exit(1)
+
     event_handler = AutoRepairHandler(target)
     observer = Observer()
     observer.schedule(event_handler, script_dir, recursive=False)
 
-    print("=" * 60)
-    print("  🤖 AI Auto-Repair System (Human-in-the-loop)")
-    print(f"  🧠 Model: {OPENROUTER_MODEL}")
-    print(f"  📱 Telegram Chat: {TELEGRAM_CHAT_ID}")
-    print("=" * 60)
     print(f"Watching '{target}' for errors...\n")
 
     # Run an initial check
@@ -365,3 +407,4 @@ if __name__ == "__main__":
         print("\n[SHUTDOWN] Stopping watchdog...")
         observer.stop()
     observer.join()
+
