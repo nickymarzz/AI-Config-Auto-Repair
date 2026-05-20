@@ -73,3 +73,41 @@ This project demonstrates the implementation of a state-of-the-art **Agentic Wor
 - **Perception**: Monitoring file system events and incoming Telegram messages.
 - **Reasoning**: Validating JSON data, analyzing syntax errors, and generating precise AST repairs via LLMs.
 - **Action**: Pushing mobile alerts and executing human-approved file modifications.
+
+```mermaid
+graph TD
+    %% Define Entities
+    User((User))
+    File[config.json]
+    
+    %% Python Script (The Hands)
+    subgraph Python Agent [AI Auto-Repair Agent]
+        Watchdog[Watchdog File Monitor]
+        Validator[JSON Parser]
+        RepairEngine[File Overwrite Engine]
+    end
+
+    %% AI Engine (The Brain)
+    subgraph AI Processing [AI Reasoning]
+        OpenRouter[OpenRouter API: DeepSeek v4 Flash]
+    end
+
+    %% Human-in-the-loop
+    subgraph Telegram Integration [Mobile Human-in-the-Loop]
+        TelegramAPI[Telegram Bot API]
+        TelegramApp[Telegram App]
+    end
+
+    %% Workflow
+    User -->|Saves edits| File
+    File -.->|Monitored by| Watchdog
+    Watchdog -->|Triggers on change| Validator
+    Validator -->|Valid Syntax| Success((Ignore))
+    Validator -->|Throws JSONDecodeError| OpenRouter
+    
+    OpenRouter -->|Generates Corrected JSON| TelegramAPI
+    TelegramAPI -->|Sends Alert & Proposed Fix| TelegramApp
+    TelegramApp -->|User Replies YES| RepairEngine
+    RepairEngine -->|Rewrites syntax correctly| File
+```
+
