@@ -76,38 +76,45 @@ This project demonstrates the implementation of a state-of-the-art **Agentic Wor
 
 ```mermaid
 graph TD
-    %% Define Entities
-    User((User))
-    File[config.json]
+    %% Styling and Architecture Elements
+    classDef client fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
+    classDef monitor fill:#e3f2fd,stroke:#2196f3,stroke-width:2px;
+    classDef brain fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px;
+    classDef gate fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
+
+    %% Elements Definition
+    Dev((Developer)):::client
+    TargetFile[config.json File]:::client
+
+    subgraph Local_Runtime_Agent [Perception Agent Layer]
+        Watchdog Engine[Watchdog File Monitor]:::monitor
+        Parser[Native JSON Validator]:::monitor
+        Writer[Atomic Overwrite Engine]:::monitor
+    end
+
+    subgraph Cloud_Reasoning [AI Core Inference Layer]
+        OpenRouterAPI[OpenRouter API Gateway]:::brain
+        LLM[LLM Reasoning Engine]:::brain
+    end
+
+    subgraph Security_Gate [Human-In-The-Loop Validation Layer]
+        TelegramBot[Telegram Bot API]:::gate
+        TelegramApp[Mobile Developer Client]:::gate
+    end
+
+    %% Pipeline Processing Stream
+    Dev -->|1. Saves Manual Changes| TargetFile
+    TargetFile -.->|2. Asynchronous I/O Hook| Watchdog Engine
+    Watchdog Engine -->|3. Traps Save Event| Parser
     
-    %% Python Script (The Hands)
-    subgraph Python Agent [AI Auto-Repair Agent]
-        Watchdog[Watchdog File Monitor]
-        Validator[JSON Parser]
-        RepairEngine[File Overwrite Engine]
-    end
-
-    %% AI Engine (The Brain)
-    subgraph AI Processing [AI Reasoning]
-        OpenRouter[OpenRouter API: DeepSeek v4 Flash]
-    end
-
-    %% Human-in-the-loop
-    subgraph Telegram Integration [Mobile Human-in-the-Loop]
-        TelegramAPI[Telegram Bot API]
-        TelegramApp[Telegram App]
-    end
-
-    %% Workflow
-    User -->|Saves edits| File
-    File -.->|Monitored by| Watchdog
-    Watchdog -->|Triggers on change| Validator
-    Validator -->|Valid Syntax| Success((Ignore))
-    Validator -->|Throws JSONDecodeError| OpenRouter
+    Parser -->|Syntax Valid| Pass((Terminate Process))
+    Parser -->|Syntax Invalid: Throws Exception| OpenRouterAPI
     
-    OpenRouter -->|Generates Corrected JSON| TelegramAPI
-    TelegramAPI -->|Sends Alert & Proposed Fix| TelegramApp
-    TelegramApp -->|User Replies YES| RepairEngine
-    RepairEngine -->|Rewrites syntax correctly| File
+    OpenRouterAPI -->|4. Post Error Context| LLM
+    LLM -->|5. Compiles Corrected Structural JSON| TelegramBot
+    TelegramBot -->|6. Pushes Interactive Notification| TelegramApp
+    
+    TelegramApp -->|7. User Reviews & Sends 'YES'| Writer
+    Writer -->|8. Secure Overwrite| TargetFile
 ```
 
