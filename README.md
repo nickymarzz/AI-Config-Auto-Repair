@@ -87,7 +87,7 @@ graph TD
     TargetFile[config.json File]:::client
 
     subgraph Local_Runtime_Agent [Perception Agent Layer]
-        Watchdog Engine[Watchdog File Monitor]:::monitor
+        WatchdogEngine[Watchdog File Monitor]:::monitor
         Parser[Native JSON Validator]:::monitor
         Writer[Atomic Overwrite Engine]:::monitor
     end
@@ -104,8 +104,8 @@ graph TD
 
     %% Pipeline Processing Stream
     Dev -->|1. Saves Manual Changes| TargetFile
-    TargetFile -.->|2. Asynchronous I/O Hook| Watchdog Engine
-    Watchdog Engine -->|3. Traps Save Event| Parser
+    TargetFile -.->|2. Asynchronous I/O Hook| WatchdogEngine
+    WatchdogEngine -->|3. Traps Save Event| Parser
     
     Parser -->|Syntax Valid| Pass((Terminate Process))
     Parser -->|Syntax Invalid: Throws Exception| OpenRouterAPI
