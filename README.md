@@ -84,4 +84,4 @@ This project demonstrates the implementation of a state-of-the-art **Agentic Wor
 - **Reasoning**: Validating JSON data, analyzing syntax errors, and generating precise AST repairs via LLMs.
 - **Action**: Pushing mobile alerts and executing human-approved file modifications.
 
-![System Diagram](file:///d:/OS%20Agentic%20AI/AI-Config-Auto-Repair/System%20Diagram.png)
+![System Diagram](System%20Diagram.png)
