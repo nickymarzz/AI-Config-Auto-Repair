@@ -1,17 +1,18 @@
 # Final Project Report: AI Config Auto-Repair Manager
 
 ## Executive Summary
+
 The **AI Config Auto-Repair Manager** is an automated watchdog system designed to maintain the integrity of JSON configuration files. By integrating real-time file monitoring with advanced Large Language Model (LLM) reasoning via OpenRouter, the system detects syntax errors instantly, generates precise corrections, and secures human approval directly through a mobile **Telegram** interface before applying any modifications.
 
 ---
 
 ## 🏗️ System Architecture
+
 The project follows a robust **Agentic Workflow** composed of three distinct layers:
 
 1. **Perception Layer (File & Telegram Monitoring)**:
    - Utilizes the `watchdog` library to monitor the local filesystem for `on_modified` events on target configuration files (e.g., `config.json`).
    - Actively polls the native Telegram Bot API to detect real-time user validation approvals or rejections.
-
 
 2. **Reasoning Layer (Validation & AI AST Repair)**:
    - **Validation**: Every file change is validated using Python's robust `json.loads()`.
@@ -26,22 +27,27 @@ The project follows a robust **Agentic Workflow** composed of three distinct lay
 ---
 
 ## 📝 AI Prompt Engineering
+
 To ensure high-quality, parseable responses from reasoning models (like DeepSeek v4 Flash), a strict, non-conversational prompting strategy was used:
 
 ### System Prompt
+>
 > "You are a JSON syntax repair assistant. When given broken JSON, return ONLY the corrected valid JSON. No explanation, no markdown."
 
 ### User Prompt
+>
 > "The following JSON file has a syntax error:
 > Error: {error}
-> 
+>
 > Broken JSON content:
 > {broken_content}
-> 
+>
 > Fix ALL syntax errors and return ONLY the corrected valid JSON."
 
 ### Robust Response Extraction
+
 Because reasoning models often return thinking processes in `reasoning_content` and the final answer in `content` (or sometimes leave `content` null), the system implements an advanced multi-stage extraction pipeline (`extract_json_from_text`):
+
 1. Tries raw text parsing directly.
 2. Strips markdown fences (` ```json `) and re-evaluates.
 3. Uses regular expressions to extract the outermost `{ ... }` object block from reasoning text as a robust fallback.
@@ -49,6 +55,7 @@ Because reasoning models often return thinking processes in `reasoning_content` 
 ---
 
 ## 🔐 Evolution from Local LLM to OpenRouter & Telegram
+
 The project initially explored local LLM execution (Llama-3 via Ollama) to guarantee zero data egress. However, as the architectural requirements expanded to include remote mobile approvals and multi-model flexibility, the system successfully transitioned to **OpenRouter**:
 
 1. **Zero-Overhead REST API**: Bypassing complex agent orchestration runtimes eliminated context overflow issues and reduced system prompt token consumption by over 99%.
@@ -66,8 +73,8 @@ The project initially explored local LLM execution (Llama-3 via Ollama) to guara
 | **Markdown Hallucination** | Models frequently wrap JSON in markdown code blocks. | Built automated regex stripping to sanitize ` ```json ` blocks before validation. |
 | **Rate Limiting** | Free tier daily limits on specific models (e.g., DeepSeek free). | Documented drop-in replacements like `openrouter/auto` and `openrouter/free` to ensure uninterrupted operation. |
 
-
 ---
 
 ## 🏁 Conclusion
+
 The **AI Config Auto-Repair Manager** represents a highly resilient, production-ready implementation of an agentic auto-healing workflow. By combining direct REST inference, robust AST extraction, and an elegant, conflict-free Telegram polling mechanism, the system provides an exceptionally smooth and secure developer experience.
